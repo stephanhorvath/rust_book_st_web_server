@@ -11,18 +11,20 @@ fn main() {
     // spawn a new instance of TcpListener to listen to requests made on localhost:7878
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
     // let pool = ThreadPool::new(4);
-    let pool = match ThreadPool::build(4) {
+    let pool = match ThreadPool::build(2) {
         Ok(tp) => tp,
         Err(e) => panic!("Error building pool: {:#?}", e),
     };
 
-    for stream in listener.incoming() {
+    for stream in listener.incoming().take(2) {
         let stream = stream.unwrap();
 
         pool.execute(|| {
             handle_connection(stream);
         });
     }
+
+    println!("Shutting down.");
 }
 
 fn handle_connection(mut stream: TcpStream) {
@@ -45,5 +47,6 @@ fn handle_connection(mut stream: TcpStream) {
         format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
 
         stream.write_all(response.as_bytes()).unwrap();
+        stream.flush().unwrap();
 
 }
